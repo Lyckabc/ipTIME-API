@@ -35,7 +35,8 @@ func AddWOL(client *http.Client, router *structs.Router, macAddress string, name
 }
 
 func RemoveWOL(client *http.Client, router *structs.Router, macAddress string) (bool, error) {
-	params := map[string]string{"mac": macAddress}
+	// wol/del expects an array of MAC address strings
+	params := []string{macAddress}
 
 	_, err := serviceCall(client, router, "wol/del", params)
 	if err != nil {

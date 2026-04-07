@@ -63,14 +63,26 @@ func RemovePortForward(client *http.Client, router *structs.Router, pf *structs.
 		return false, fmt.Errorf("port forward rule %q not found", pf.Name)
 	}
 
-	params := map[string]string{
-		"name": pf.Name,
+	// portforward/del takes {"type":"user","list":["name1","name2",...]}
+	// and returns the remaining list after deletion.
+	params := map[string]interface{}{
 		"type": "user",
+		"list": []string{pf.Name},
 	}
 
-	_, err := serviceCall(client, router, "portforward/del", params)
+	raw, err := serviceCall(client, router, "portforward/del", params)
 	if err != nil {
 		return false, fmt.Errorf("failed to remove port forward rule %q: %w", pf.Name, err)
+	}
+
+	// Verify the rule is absent from the returned remaining list.
+	var remaining []structs.PortForward
+	if err := json.Unmarshal(raw, &remaining); err == nil {
+		for _, r := range remaining {
+			if r.Name == pf.Name {
+				return false, fmt.Errorf("port forward rule %q still present after deletion", pf.Name)
+			}
+		}
 	}
 	return true, nil
 }
