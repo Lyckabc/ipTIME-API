@@ -1,6 +1,7 @@
 package structs
 
 type RouterStatus struct {
-	NetworkStatus NetworkStatus
-	SystemInfo    SystemInfo
+	SystemInfo SystemInfo
+	LANInfo    LANInfo
+	PortLinks  []PortLinkStatus
 }

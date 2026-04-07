@@ -2,88 +2,37 @@ package routers
 
 import (
 	"encoding/json"
-	"fmt"
-	"github.com/kongwoojin/ipTIME-API/cmd/structs"
-	"io"
 	"net/http"
+
+	"github.com/kongwoojin/ipTIME-API/cmd/structs"
 )
 
 func RouterStatus(client *http.Client, router *structs.Router) (*structs.RouterStatus, error) {
-	routerStatus := &structs.RouterStatus{}
+	status := &structs.RouterStatus{}
 
-	networkStatus, err := getNetworkStatus(client, router)
+	sysRaw, err := serviceCall(client, router, "system/info", nil)
 	if err != nil {
 		return nil, err
 	}
-	routerStatus.NetworkStatus = *networkStatus
-
-	systemInfo, err := getSystemInfo(client, router)
-	if err != nil {
-		return nil, err
-	}
-	routerStatus.SystemInfo = *systemInfo
-
-	return routerStatus, nil
-}
-
-func getNetworkStatus(client *http.Client, router *structs.Router) (*structs.NetworkStatus, error) {
-	var baseURL = "http://" + router.Host + ":" + fmt.Sprint(router.Port) + "/"
-
-	req, err := http.NewRequest("GET", baseURL+mobileRouterStatus, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Referer", baseURL+mobileRouterRoot)
-	req.Header.Set("User-Agent", "Mozilla/5.0")
-	resp, err := client.Do(req)
-
-	if err != nil {
+	if err := json.Unmarshal(sysRaw, &status.SystemInfo); err != nil {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
-
-	data, err := io.ReadAll(resp.Body)
+	lanRaw, err := serviceCall(client, router, "network/interface/lan/info", nil)
 	if err != nil {
 		return nil, err
 	}
-	networkStatus := &structs.NetworkStatus{}
-
-	err = json.Unmarshal(data, &networkStatus)
-	if err != nil {
+	if err := json.Unmarshal(lanRaw, &status.LANInfo); err != nil {
 		return nil, err
 	}
 
-	return networkStatus, nil
-}
-
-func getSystemInfo(client *http.Client, router *structs.Router) (*structs.SystemInfo, error) {
-	var baseURL = "http://" + router.Host + ":" + fmt.Sprint(router.Port) + "/"
-
-	req, err := http.NewRequest("GET", baseURL+mobileRouterSystemInfo, nil)
+	portRaw, err := serviceCall(client, router, "port/link/status", nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Referer", baseURL+mobileRouterRoot)
-	req.Header.Set("User-Agent", "Mozilla/5.0")
-	resp, err := client.Do(req)
-
-	if err != nil {
+	if err := json.Unmarshal(portRaw, &status.PortLinks); err != nil {
 		return nil, err
 	}
 
-	defer resp.Body.Close()
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	systemInfo := &structs.SystemInfo{}
-
-	err = json.Unmarshal(data, &systemInfo)
-	if err != nil {
-		return nil, err
-	}
-
-	return systemInfo, nil
+	return status, nil
 }

@@ -1,79 +1,86 @@
 package routers
 
 import (
-	"fmt"
-	"github.com/PuerkitoBio/goquery"
-	"github.com/kongwoojin/ipTIME-API/cmd/structs"
-	"log"
+	"encoding/json"
 	"net/http"
-	"strings"
+
+	"github.com/kongwoojin/ipTIME-API/cmd/structs"
 )
 
+type stationInfo struct {
+	IP   string `json:"ip"`
+	Type string `json:"type"`
+	Name string `json:"name"`
+}
+
+type wiredConn struct {
+	Port      string `json:"port"`
+	Link      int    `json:"link"`
+	DownBytes int    `json:"down_bytes"`
+	UpBytes   int    `json:"up_bytes"`
+}
+
+type wirelessConn struct {
+	BSS       string `json:"bss"`
+	Duration  int    `json:"duration"`
+	RSSI      int    `json:"rssi"`
+	DownSpeed int    `json:"down_speed"`
+	UpSpeed   int    `json:"up_speed"`
+	DownBytes int    `json:"down_bytes"`
+	UpBytes   int    `json:"up_bytes"`
+}
+
+type stationConnection struct {
+	Type     string        `json:"type"`
+	Wired    *wiredConn    `json:"wired"`
+	Wireless *wirelessConn `json:"wireless"`
+}
+
+type station struct {
+	MAC        string            `json:"mac"`
+	Info       stationInfo       `json:"info"`
+	Connection stationConnection `json:"connection"`
+}
+
 func GetConnectedClientList(client *http.Client, router *structs.Router) []structs.Client {
-	var baseURL = "http://" + router.Host + ":" + fmt.Sprint(router.Port) + "/sess-bin/"
-
-	req, err := http.NewRequest("GET", baseURL+routerLanPCInfoStatus, nil)
+	raw, err := serviceCall(client, router, "network/interface/lan/stations", nil)
 	if err != nil {
-		log.Fatal(err)
-	}
-	req.Header.Set("Referer", baseURL+routerLogin)
-	req.Header.Set("User-Agent", "Mozilla/5.0")
-	resp, err := client.Do(req)
-
-	if err != nil {
-		panic(err)
-	}
-
-	defer resp.Body.Close()
-
-	html, err := goquery.NewDocumentFromReader(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if strings.Contains(html.Text(), "/sess-bin/login_session.cgi") || strings.Contains(html.Text(), "top.location = \"/\";") {
-		fmt.Println("Not logged in!")
 		return nil
 	}
 
-	var connectedClients []structs.Client
+	var stations []station
+	if err := json.Unmarshal(raw, &stations); err != nil {
+		return nil
+	}
 
-	table := html.Find("table.lansetup_main_table")
-	tbody := table.Find("tbody")
-
-	tbody.Find("tr.lansetup_main_tr").EachWithBreak(func(i int, s *goquery.Selection) bool {
-		var client = &structs.Client{}
-
-		ip := strings.Trim(s.Find("td:nth-child(1) > span:nth-child(1)").Text(), " ")
-
-		if ip == "" {
-			return false
+	var clients []structs.Client
+	for _, s := range stations {
+		if s.Info.IP == "" {
+			continue
 		}
-
-		client.IP = ip
-		client.Mac = strings.Trim(s.Find("td:nth-child(2) > span:nth-child(1)").Text(), " ")
-		client.Hostname = strings.Trim(s.Find("td:nth-child(3) > span:nth-child(1)").Text(), " ")
-
-		connectionType := strings.Split(s.Find("td:nth-child(4) > span:nth-child(1)").Text(), ":")
-
-		switch connectionType[0] {
-		case "유선":
-			client.ConnectionType = structs.Wired
-		case "무선":
-			client.ConnectionType = structs.Wireless
+		c := structs.Client{
+			MAC:    s.MAC,
+			IP:     s.Info.IP,
+			Name:   s.Info.Name,
+			IPType: s.Info.Type,
+		}
+		switch s.Connection.Type {
+		case "wired":
+			c.ConnectionType = structs.Wired
+			if s.Connection.Wired != nil {
+				c.Port = s.Connection.Wired.Port
+			}
+		case "wireless":
+			c.ConnectionType = structs.Wireless
+			if s.Connection.Wireless != nil {
+				c.RSSI = s.Connection.Wireless.RSSI
+				c.DownSpeed = s.Connection.Wireless.DownSpeed
+				c.UpSpeed = s.Connection.Wireless.UpSpeed
+			}
 		default:
-			client.ConnectionType = structs.UnknownConnectionType
+			c.ConnectionType = structs.UnknownConnectionType
 		}
-
-		if strings.Compare(connectionType[1], "수동할당") == 0 {
-			client.IsManuallyAssigned = true
-		} else {
-			client.IsManuallyAssigned = false
-		}
-
-		connectedClients = append(connectedClients, *client)
-		return true
-	})
-
-	return connectedClients
+		clients = append(clients, c)
+	}
+	return clients
 }

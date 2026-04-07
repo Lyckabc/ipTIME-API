@@ -1,124 +1,61 @@
 package routers
 
 import (
-	"bytes"
+	"encoding/json"
 	"fmt"
-	"github.com/kongwoojin/ipTIME-API/cmd/enums"
-	"github.com/kongwoojin/ipTIME-API/cmd/structs"
-	"io"
 	"net/http"
-	"net/url"
-	"strings"
+
+	"github.com/kongwoojin/ipTIME-API/cmd/structs"
 )
 
-func ChangeMacAuthMode(client *http.Client, router *structs.Router, policy enums.MacAuthPolicy, frequency enums.WifiFrequency) (bool, error) {
-	var baseURL = "http://" + router.Host + ":" + fmt.Sprint(router.Port) + "/"
-
-	params := url.Values{
-		"tmenu": []string{"wirelessconf"}, "smenu": []string{"macauth"}, "service_name": []string{"macauth"},
-		"wlmode": []string{frequency.GetFrequency()}, "idx": []string{"0"}, "mode": []string{"policy"},
-		"policy": []string{policy.GetPolicy()},
-	}
-
-	req, err := http.NewRequest("POST", baseURL+mobileRouterSubmit, bytes.NewBufferString(params.Encode()))
+func GetMacAuthList(client *http.Client, router *structs.Router) []structs.MacAuth {
+	raw, err := serviceCall(client, router, "wireless/mac/show", nil)
 	if err != nil {
-		return false, err
-	}
-	req.Header.Set("Origin", baseURL)
-	req.Header.Set("Referer", baseURL+mobileRouterMacAuth)
-	req.Header.Set("User-Agent", "Mozilla/5.0")
-
-	resp, err := client.Do(req)
-
-	if err != nil {
-		return false, err
+		return nil
 	}
 
-	defer resp.Body.Close()
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return false, err
+	var list []structs.MacAuth
+	if err := json.Unmarshal(raw, &list); err != nil {
+		return nil
 	}
-
-	if strings.Contains(string(data), "ok") {
-		return true, nil
-	} else {
-		return false, fmt.Errorf("failed to change mac auth policy")
-	}
+	return list
 }
 
-func AddMacAuth(client *http.Client, router *structs.Router, frequency enums.WifiFrequency, macAddress string, desc string) (bool, error) {
-	var baseURL = "http://" + router.Host + ":" + fmt.Sprint(router.Port) + "/"
-
-	params := url.Values{
-		"tmenu": []string{"wirelessconf"}, "smenu": []string{"macauth"}, "service_name": []string{"macauth"},
-		"wlmode": []string{frequency.GetFrequency()}, "idx": []string{"0"}, "mode": []string{"register"},
-		"mac": []string{macAddress}, "desc": []string{desc},
+func ChangeMacAuthPolicy(client *http.Client, router *structs.Router, bsstag string, policy structs.MacAuthPolicy) (bool, error) {
+	params := map[string]string{
+		"bsstag": bsstag,
+		"policy": string(policy),
 	}
 
-	req, err := http.NewRequest("POST", baseURL+mobileRouterSubmit, bytes.NewBufferString(params.Encode()))
+	_, err := serviceCall(client, router, "wireless/mac/policy", params)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to change MAC auth policy for %s: %w", bsstag, err)
 	}
-	req.Header.Set("Origin", baseURL)
-	req.Header.Set("Referer", baseURL+mobileRouterMacAuth)
-	req.Header.Set("User-Agent", "Mozilla/5.0")
-
-	resp, err := client.Do(req)
-
-	if err != nil {
-		return false, err
-	}
-
-	defer resp.Body.Close()
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return false, err
-	}
-
-	if strings.Contains(string(data), "ok") {
-		return true, nil
-	} else {
-		return false, fmt.Errorf("failed to add mac address")
-	}
+	return true, nil
 }
 
-func RemoveMacAuth(client *http.Client, router *structs.Router, frequency enums.WifiFrequency, macAddress string) (bool, error) {
-	var baseURL = "http://" + router.Host + ":" + fmt.Sprint(router.Port) + "/"
-
-	params := url.Values{
-		"tmenu": []string{"wirelessconf"}, "smenu": []string{"macauth"}, "service_name": []string{"macauth"},
-		"wlmode": []string{frequency.GetFrequency()}, "idx": []string{"0"}, "mode": []string{"unregister"},
-		"delmaccheck": []string{strings.ReplaceAll(macAddress, ":", "-")},
+func AddMacAuth(client *http.Client, router *structs.Router, bsstag string, macAddress string) (bool, error) {
+	params := map[string]string{
+		"bsstag": bsstag,
+		"mac":    macAddress,
 	}
 
-	req, err := http.NewRequest("POST", baseURL+mobileRouterSubmit, bytes.NewBufferString(params.Encode()))
+	_, err := serviceCall(client, router, "wireless/mac/add", params)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to add MAC %s to %s: %w", macAddress, bsstag, err)
+	}
+	return true, nil
+}
+
+func RemoveMacAuth(client *http.Client, router *structs.Router, bsstag string, macAddress string) (bool, error) {
+	params := map[string]string{
+		"bsstag": bsstag,
+		"mac":    macAddress,
 	}
 
-	req.Header.Set("Origin", baseURL)
-	req.Header.Set("Referer", baseURL+mobileRouterMacAuth)
-	req.Header.Set("User-Agent", "Mozilla/5.0")
-
-	resp, err := client.Do(req)
-
+	_, err := serviceCall(client, router, "wireless/mac/del", params)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to remove MAC %s from %s: %w", macAddress, bsstag, err)
 	}
-
-	defer resp.Body.Close()
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return false, err
-	}
-
-	if strings.Contains(string(data), "ok") {
-		return true, nil
-	} else {
-		return false, fmt.Errorf("failed to remove mac address")
-	}
+	return true, nil
 }

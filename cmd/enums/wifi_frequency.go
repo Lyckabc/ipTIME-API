@@ -1,37 +1,27 @@
 package enums
 
-import "github.com/kongwoojin/ipTIME-API/cmd/structs"
+import "fmt"
 
+// WifiFrequency represents a wireless band.
 type WifiFrequency int
 
 const (
-	F2_4GHZ = iota + 1
+	F2_4GHZ WifiFrequency = iota + 1
 	F5GHZ
 )
 
-func (f WifiFrequency) GetSSID(status *structs.RouterStatus) string {
-	ssid := ""
-	for _, wifi := range status.NetworkStatus.Wireless {
-		if wifi.Mhz == f.GetFullFrequency() {
-			ssid = wifi.Ssid
-			break
-		}
-	}
-	return ssid
-}
-
-func (f WifiFrequency) GetFullFrequency() string {
+// BSSTag returns the bsstag used in the service.cgi API (e.g. "2g.1", "5g.1").
+func (f WifiFrequency) BSSTag(index int) string {
 	if f == F2_4GHZ {
-		return "2.4 GHz"
-	} else {
-		return "5 GHz"
+		return fmt.Sprintf("2g.%d", index)
 	}
+	return fmt.Sprintf("5g.%d", index)
 }
 
-func (f WifiFrequency) GetFrequency() string {
+// Band returns the band string ("2g" or "5g").
+func (f WifiFrequency) Band() string {
 	if f == F2_4GHZ {
 		return "2g"
-	} else {
-		return "5g"
 	}
+	return "5g"
 }

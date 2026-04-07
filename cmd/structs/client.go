@@ -9,9 +9,13 @@ const (
 )
 
 type Client struct {
-	IP                 string         `json:"ip"`
-	Mac                string         `json:"mac"`
-	Hostname           string         `json:"hostname"`
-	ConnectionType     ConnectionType `json:"connectionType"`
-	IsManuallyAssigned bool           `json:"isManuallyAssigned"`
+	MAC            string         `json:"mac"`
+	IP             string         `json:"ip"`
+	Name           string         `json:"name"`
+	IPType         string         `json:"ipType"`   // "dhcp" or "static"
+	ConnectionType ConnectionType `json:"connectionType"`
+	Port           string         `json:"port,omitempty"`    // wired: "lan1"..
+	RSSI           int            `json:"rssi,omitempty"`    // wireless: signal strength
+	DownSpeed      int            `json:"downSpeed,omitempty"`
+	UpSpeed        int            `json:"upSpeed,omitempty"`
 }
