@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/kongwoojin/ipTIME-API/cmd/structs"
+	"github.com/Lyckabc/ipTIME-API/cmd/structs"
 )
 
 type portForwardList struct {

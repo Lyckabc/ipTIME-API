@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/kongwoojin/ipTIME-API/cmd/structs"
+	"github.com/Lyckabc/ipTIME-API/cmd/structs"
 )
 
 func GetWOLList(client *http.Client, router *structs.Router) []structs.WOL {

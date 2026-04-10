@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kongwoojin/ipTIME-API/cmd/routers"
-	"github.com/kongwoojin/ipTIME-API/cmd/structs"
+	"github.com/Lyckabc/ipTIME-API/cmd/routers"
+	"github.com/Lyckabc/ipTIME-API/cmd/structs"
 )
 
 const testPFName = "api_test_rule"

@@ -7,7 +7,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/kongwoojin/ipTIME-API/cmd/structs"
+	"github.com/Lyckabc/ipTIME-API/cmd/structs"
 )
 
 type apiResponse struct {

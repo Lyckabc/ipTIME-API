@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/kongwoojin/ipTIME-API/cmd/structs"
+	"github.com/Lyckabc/ipTIME-API/cmd/structs"
 )
 
 func Login(client *http.Client, router *structs.Router) bool {

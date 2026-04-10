@@ -1,3 +1,3 @@
-module github.com/kongwoojin/ipTIME-API
+module github.com/Lyckabc/ipTIME-API
 
 go 1.20

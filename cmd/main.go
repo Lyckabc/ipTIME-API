@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/kongwoojin/ipTIME-API/cmd/routers"
-	"github.com/kongwoojin/ipTIME-API/cmd/structs"
+	"github.com/Lyckabc/ipTIME-API/cmd/routers"
+	"github.com/Lyckabc/ipTIME-API/cmd/structs"
 )
 
 func main() {

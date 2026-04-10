@@ -5,7 +5,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/kongwoojin/ipTIME-API/cmd/routers"
+	"github.com/Lyckabc/ipTIME-API/cmd/routers"
 )
 
 func main() {
